@@ -1,43 +1,27 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.IO;
-using System.Linq;
 using TaseronTakip.Models;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-// sqlite dosya yolu sabitle
-var defaultCs = builder.Configuration.GetConnectionString("DefaultConnection");
-var cs = string.IsNullOrWhiteSpace(defaultCs)
-    ? $"Data Source={Path.Combine(builder.Environment.ContentRootPath, "app.db")}"
-    : (defaultCs.Contains("Data Source=app.db", StringComparison.OrdinalIgnoreCase)
-        ? $"Data Source={Path.Combine(builder.Environment.ContentRootPath, "app.db")}"
-        : defaultCs);
+// Tek, sabit bir SQLite yolu kullan (çalýþma dizini sapmalarýný engeller)
+var dbPath = Path.Combine(builder.Environment.ContentRootPath, "app.db");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite($"Data Source={dbPath}"));
 
+// Razor Pages
 builder.Services.AddRazorPages();
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(cs));
 
 var app = builder.Build();
 
-// DB init: migration varsa uygula, yoksa EnsureCreated
+// Uygulama açýlýþýnda þemayý migration'larla uygula (EnsureCreated KULLANMA)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    try
-    {
-        var hasPending = db.Database.GetPendingMigrations().Any();
-        if (hasPending) db.Database.Migrate();
-        else db.Database.EnsureCreated();
-    }
-    catch
-    {
-        db.Database.EnsureCreated();
-    }
+    db.Database.Migrate();
 }
 
 if (!app.Environment.IsDevelopment())
@@ -45,11 +29,18 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+else
+{
+    app.UseDeveloperExceptionPage();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
+
 app.MapRazorPages();
+
 app.Run();
 
 public class AppDbContext : DbContext
