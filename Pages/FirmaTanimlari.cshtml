@@ -1,0 +1,135 @@
+@page "{id?}"
+@model FirmaTanimlariModel
+@{
+    ViewData["Title"] = "Firma Tanımları";
+    ViewData["ContainerClass"] = "container";
+}
+
+<div class="page__head">
+    <h1>Firma Tanımları</h1>
+</div>
+
+<div id="toast" class="toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+
+<form id="frmFirma" method="post" asp-page="./FirmaTanimlari" asp-page-handler="Save" novalidate data-isupdate="@((Model.Input.Id>0).ToString().ToLower())">
+    <input type="hidden" asp-for="Input.Id" id="Input_Id" />
+    <div class="card p-20">
+        <div class="grid grid-2">
+            <div>
+                <label>Firma Adı</label>
+                <input asp-for="Input.Ad" class="form-input" />
+                <span asp-validation-for="Input.Ad" class="text-danger"></span>
+            </div>
+            <div>
+                <label>Vergi No</label>
+                <input asp-for="Input.VergiNo" class="form-input" />
+            </div>
+            <div>
+                <label>Yetkili</label>
+                <input asp-for="Input.Yetkili" class="form-input" />
+            </div>
+            <div>
+                <label>Telefon</label>
+                <input asp-for="Input.Telefon" class="form-input" />
+            </div>
+            <div>
+                <label>E-posta</label>
+                <input asp-for="Input.Eposta" class="form-input" />
+            </div>
+            <div>
+                <label>Adres</label>
+                <input asp-for="Input.Adres" class="form-input" />
+            </div>
+            <div>
+                <label>Durum</label>
+                <select asp-for="Input.Aktif" class="form-input">
+                    <option value="true">Aktif</option>
+                    <option value="false">Pasif</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="right mt-16" style="gap:8px">
+            <button type="button" id="btnClear" class="btn btn-sm">Temizle</button>
+            <button type="submit" id="btnSubmit" class="btn btn-primary">@(Model.Input.Id > 0 ? "Güncelle" : "Kaydet")</button>
+        </div>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger mt-10"></div>
+    </div>
+</form>
+
+<div class="card p-20 mt-16">
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Firma</th>
+                    <th>Yetkili</th>
+                    <th>Telefon</th>
+                    <th>E-posta</th>
+                    <th>Durum</th>
+                    <th class="right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in Model.Records)
+                {
+                    <tr>
+                        <td>@f.Id</td>
+                        <td>@f.Ad</td>
+                        <td>@(f.Yetkili ?? "-")</td>
+                        <td>@(f.Telefon ?? "-")</td>
+                        <td>@(f.Eposta ?? "-")</td>
+                        <td>@(f.Aktif ? "Aktif" : "Pasif")</td>
+                        <td class="right">
+                            <a class="btn btn-sm" asp-page="./FirmaTanimlari" asp-route-id="@f.Id">Düzenle</a>
+                            <form method="post" asp-page="./FirmaTanimlari" asp-page-handler="Delete" asp-route-id="@f.Id" style="display:inline" onsubmit="return confirm('Kayıt silinsin mi?');">
+                                <button class="btn btn-sm btn-danger" type="submit">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function(){
+          const form = document.getElementById('frmFirma');
+          const toast = document.getElementById('toast');
+          const btnClear = document.getElementById('btnClear');
+          const btnSubmit = document.getElementById('btnSubmit');
+
+          (function normalizeUrl(){
+            const baseUrl='@Url.Page("./FirmaTanimlari")';
+            if(location.search.includes('handler=') || /\/FirmaTanimlari\/\d+$/i.test(location.pathname)){ history.replaceState({},'',baseUrl); }
+          })();
+
+          form.addEventListener('submit', function(e){
+            const isUpdate = form.dataset.isupdate==='true';
+            if(!confirm(isUpdate?'Bilgiler güncellensin mi?':'Bilgiler kaydedilsin mi?')){ e.preventDefault(); }
+          });
+
+          btnClear.addEventListener('click', function(){
+            hardClearForm(form); showToast('Form temizlendi');
+            const baseUrl='@Url.Page("./FirmaTanimlari")'; history.replaceState({},'',baseUrl);
+          });
+
+          const initialMsg=(toast?.dataset?.msg||'').trim(); if(initialMsg){ showToast(initialMsg); }
+
+          function hardClearForm(frm){
+            frm.querySelectorAll('input,select,textarea').forEach(el=>{
+              if(el.type==='hidden' && el.id==='Input_Id'){ el.value=0; return; }
+              if(el.type==='checkbox'||el.type==='radio'){ el.checked=false; return; }
+              el.value='';
+            });
+            frm.dataset.isupdate='false'; if(btnSubmit) btnSubmit.textContent='Kaydet';
+          }
+          function showToast(m){ if(!toast) return; toast.textContent=m; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),4000); }
+        })();
+    </script>
+}

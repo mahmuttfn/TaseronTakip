@@ -1,0 +1,79 @@
+@page
+@model LogKayitlariModel
+@{
+    ViewData["Title"] = "Log Kayıtları";
+    ViewData["ContainerClass"] = "container";
+}
+
+<div class="page__head">
+    <h1>Log Kayıtları</h1>
+</div>
+
+<div id="toast" class="toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+
+<form id="frmFilt" method="get" class="card p-20" novalidate>
+    <div class="grid grid-2">
+        <div>
+            <label>Başlangıç</label>
+            <input asp-for="Filter.Start" type="date" class="form-input" />
+        </div>
+        <div>
+            <label>Bitiş</label>
+            <input asp-for="Filter.End" type="date" class="form-input" />
+        </div>
+        <div>
+            <label>Kullanıcı</label>
+            <input asp-for="Filter.Kullanici" class="form-input" placeholder="ad soyad / kullanıcı adı" />
+        </div>
+        <div>
+            <label>Eylem</label>
+            <select asp-for="Filter.Eylem" class="form-input">
+                <option value="">Hepsi</option>
+                <option>Create</option>
+                <option>Update</option>
+                <option>Delete</option>
+                <option>Login</option>
+                <option>Approve</option>
+            </select>
+        </div>
+        <div class="col-span-2 right mt-16">
+            <button class="btn btn-primary" type="submit">Filtrele</button>
+            <a class="btn btn-sm" asp-page="./LogKayitlari">Temizle</a>
+        </div>
+    </div>
+</form>
+
+<div class="card p-20 mt-16">
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Tarih/Saat</th>
+                    <th>Kullanıcı</th>
+                    <th>Eylem</th>
+                    <th>Nesne</th>
+                    <th>Detay</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Rows.Count == 0)
+                {
+                    <tr><td colspan="5" class="muted">Kayıt bulunamadı.</td></tr>
+                }
+                else
+                {
+                    @foreach (var r in Model.Rows)
+                    {
+                        <tr>
+                            <td>@r.Zaman.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@(r.Kullanici ?? "-")</td>
+                            <td>@(r.Eylem ?? "-")</td>
+                            <td>@(r.Nesne ?? "-")</td>
+                            <td>@(string.IsNullOrWhiteSpace(r.Detay) ? "-" : r.Detay)</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

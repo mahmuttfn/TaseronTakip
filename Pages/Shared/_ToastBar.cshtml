@@ -1,0 +1,14 @@
+@* Global Toast Bar: TempData["Ok"] varsa yeşil ve geniş toast gösterir *@
+<div id="toast" class="ta-toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+<style>
+  .ta-toast{
+    position: fixed; top: 14px; right: 14px; z-index: 9999;
+    min-width: 360px; max-width: 560px; padding: 14px 16px;
+    border-radius: 12px; border: 1px solid #16a34a;
+    background: #22c55e; color: #052e16; font-weight: 700;
+    box-shadow: 0 10px 30px rgba(2,8,23,.12);
+    transform: translateY(-16px); opacity: 0; pointer-events: none;
+    transition: all .22s ease;
+  }
+  .ta-toast.show{ transform: translateY(0); opacity: 1; }
+</style>

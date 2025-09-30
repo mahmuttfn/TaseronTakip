@@ -1,0 +1,84 @@
+@{
+    var title = ViewData["Title"] as string ?? "Taşeron Ziyaret ve Evrak Takip Sistemi";
+    var containerClass = (ViewData["ContainerClass"] as string) ?? "container";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>@title</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="~/assets/css/main.css" />
+</head>
+<body>
+@@await Html.PartialAsync(\"_ToastBar\")
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__header">
+      <button class="icon-btn" id="menuToggle" aria-label="Menüyü daralt">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <span class="brand">Taşeron Takip</span>
+    </div>
+
+    <nav class="nav">
+      <div class="nav__section">
+        <button class="nav__section-title" data-toggle="submenu">
+          <span>Genel Tanımlar</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="chev"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="nav__submenu">
+          <li><a asp-page="/SirketTanimlari">Şirket Tanımları</a></li>
+          <li><a asp-page="/KullaniciTanimlari">Kullanıcı Tanımları</a></li>
+          <li><a asp-page="/BolumKartlari">Bölüm Kartları</a></li>
+          <li><a asp-page="/FirmaTanimlari">Firma Tanımları</a></li>
+          <li><a asp-page="/EvrakTurleriKurallar">Evrak Türleri &amp; Kurallar</a></li>
+          <li><a asp-page="/LogKayitlari">Log Kayıtları</a></li>
+        </ul>
+      </div>
+
+      <div class="nav__section">
+        <button class="nav__section-title" data-toggle="submenu">
+          <span>Taşeron</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="chev"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <ul class="nav__submenu">
+          <li><a asp-page="/GostergePaneli">Gösterge Paneli</a></li>
+          <li><a asp-page="/RandevuTalep">Randevu Talep</a></li>
+          <li><a asp-page="/IncelemeOnay">İnceleme / Onay</a></li>
+          <li><a asp-page="/GirisKontrolu">Giriş Kontrolü</a></li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+
+  <header class="topbar">
+    <div class="topbar__title">
+      <button class="icon-btn only-mobile" id="menuToggleMobile" aria-label="Menüyü aç/kapat">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <span>Taşeron Ziyaret ve Evrak Takip Sistemi</span>
+    </div>
+    <div class="topbar__actions">
+      <span class="pill">Sistem Yöneticisi</span>
+      <a class="btn btn-danger" href="#" onclick="alert('Demo: Çıkış')">Çıkış</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="@containerClass">
+      @RenderBody()
+    </section>
+  </main>
+
+  <script src="~/assets/js/app.js"></script>
+  @await RenderSectionAsync("Scripts", required: false)
+<script src="~/js/app-common.js"></script>
+</body>
+</html>

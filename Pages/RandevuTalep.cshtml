@@ -1,0 +1,287 @@
+@page
+@model RandevuTalepModel
+@{
+    ViewData["Title"] = "Randevu Talep / Davet Oluştur";
+    ViewData["ContainerClass"] = "container";
+}
+
+<div class="page__head">
+  <h1>Randevu Talep / Davet Oluştur</h1>
+</div>
+
+<div id="toast" class="toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+
+<form id="frmReq"
+      method="post"
+      asp-page="./RandevuTalep"
+      asp-page-handler="Send"
+      novalidate>
+
+  <div class="card p-20">
+    <div class="grid grid-2">
+      <div>
+        <label>Firma <span class="pill" style="margin-left:6px">Zorunlu</span></label>
+        <select asp-for="Input.Firma" class="form-input">
+          <option value="">Seçiniz</option>
+          @foreach (var f in Model.Firmalar){ <option value="@f">@f</option> }
+        </select>
+        <span asp-validation-for="Input.Firma" class="text-danger"></span>
+      </div>
+
+      <div>
+        <label>İlgili Kişi (Ad Soyad) <span class="pill" style="margin-left:6px">Zorunlu</span></label>
+        <input asp-for="Input.IlgiliKisi" class="form-input" />
+        <span asp-validation-for="Input.IlgiliKisi" class="text-danger"></span>
+      </div>
+
+      <div>
+        <label>E-posta <span class="pill" style="margin-left:6px">Zorunlu</span></label>
+        <input asp-for="Input.Email" class="form-input" placeholder="" />
+        <span asp-validation-for="Input.Email" class="text-danger"></span>
+      </div>
+
+      <div>
+        <label>İletişim No</label>
+        <input asp-for="Input.IletisimNo" class="form-input" placeholder="05xx …" />
+        <span asp-validation-for="Input.IletisimNo" class="text-danger"></span>
+      </div>
+
+      <div>
+        <label>Ziyaret Tarihi</label>
+        <input asp-for="Input.ZiyaretTarihi" type="date" class="form-input" />
+        <span asp-validation-for="Input.ZiyaretTarihi" class="text-danger"></span>
+      </div>
+
+      <div>
+        <label>Ziyaret Saati</label>
+        <input asp-for="Input.ZiyaretSaati" type="time" class="form-input" />
+        <span asp-validation-for="Input.ZiyaretSaati" class="text-danger"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- İstenen Evraklar -->
+  <div class="card p-20 mt-16">
+    <div class="grid grid-2">
+      <div class="col-span-2"><h3>İstenen Evraklar</h3></div>
+
+      <div>
+        <label>Evrak Seçimi</label>
+        <select id="evrakSelect" class="form-input">
+          <option value="">Evrak Türü</option>
+          @foreach (var e in Model.EvrakTurleri){ <option value="@e">@e</option> }
+        </select>
+      </div>
+
+      <div>
+        <label>Filtre</label>
+        <div style="display:flex;gap:18px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center">
+            <input type="checkbox" class="only-one" value="Filtre" /> Filtre
+          </label>
+          <label style="display:flex;gap:8px;align-items:center">
+            <input type="checkbox" class="only-one" value="Personel" /> Personel
+          </label>
+          <label style="display:flex;gap:8px;align-items:center">
+            <input type="checkbox" class="only-one" value="Araç" /> Araç
+          </label>
+          <button type="button" id="btnDocAdd" class="btn btn-sm" style="margin-left:auto">Listeye Ekle</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px">Seçeneklerden yalnızca biri seçilebilir.</div>
+      </div>
+
+      <div class="col-span-2">
+        <table class="table" style="width:100%">
+          <thead>
+            <tr>
+              <th style="width:240px">Evrak Türü / Seçenek</th>
+              <th>Not/Kriter</th>
+              <th style="width:80px" class="right">Sil</th>
+            </tr>
+          </thead>
+          <tbody id="docsTbody">
+            @for (var i = 0; i < Model.Input.Docs.Count; i++)
+            {
+              <tr>
+                <td>
+                  @Model.Input.Docs[i].Tip
+                  <input type="hidden" name="Input.Docs[@i].Tip" value="@Model.Input.Docs[i].Tip" />
+                </td>
+                <td>
+                  @Model.Input.Docs[i].Not
+                  <input type="hidden" name="Input.Docs[@i].Not" value="@Model.Input.Docs[i].Not" />
+                </td>
+                <td class="right">
+                  <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Sil</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>
+                <input id="evrakNoteType" class="form-input" placeholder="Not/Kriter" />
+              </td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bölüm ve Sorumlu Personeller -->
+  <div class="card p-20 mt-16">
+    <div class="grid grid-2">
+      <div class="col-span-2"><h3>Bölüm ve Sorumlu Personeller</h3></div>
+
+      <div>
+        <label>Bölüm</label>
+        <select id="bolumSelect" class="form-input">
+          <option value="">Bölüm</option>
+          @foreach (var b in Model.Bolumler){ <option value="@b">@b</option> }
+        </select>
+      </div>
+
+      <div>
+        <label>Bölüm Personeli Adı</label>
+        <div style="display:flex;gap:8px">
+          <input id="personelAd" class="form-input" />
+          <button type="button" id="btnStaffAdd" class="btn btn-sm">Ekle</button>
+        </div>
+      </div>
+
+      <div class="col-span-2">
+        <table class="table" style="width:100%">
+          <thead>
+            <tr>
+              <th style="width:240px">Bölüm</th>
+              <th>Personel</th>
+              <th style="width:80px" class="right">Sil</th>
+            </tr>
+          </thead>
+          <tbody id="staffTbody">
+            @for (var i = 0; i < Model.Input.Staff.Count; i++)
+            {
+              <tr>
+                <td>
+                  @Model.Input.Staff[i].Bolum
+                  <input type="hidden" name="Input.Staff[@i].Bolum" value="@Model.Input.Staff[i].Bolum" />
+                </td>
+                <td>
+                  @Model.Input.Staff[i].Personel
+                  <input type="hidden" name="Input.Staff[@i].Personel" value="@Model.Input.Staff[i].Personel" />
+                </td>
+                <td class="right">
+                  <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Sil</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Açıklama -->
+  <div class="card p-20 mt-16">
+    <label>Açıklama</label>
+    <textarea asp-for="Input.Aciklama" class="form-input" rows="5"></textarea>
+  </div>
+
+  <div class="right mt-16">
+    <button type="submit" class="btn btn-primary" onclick="return confirm('Davet gönderilsin mi?')">Davet Gönder</button>
+  </div>
+
+  <div asp-validation-summary="ModelOnly" class="text-danger mt-10"></div>
+</form>
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+  <script>
+    (function(){
+      const toast = document.getElementById('toast');
+      const msg = (toast?.dataset?.msg || '').trim();
+      if(msg){ showToast(msg); }
+
+      // yalnızca bir checkbox seçilsin
+      document.querySelectorAll('.only-one').forEach(cb=>{
+        cb.addEventListener('change', ()=>{
+          if(cb.checked){
+            document.querySelectorAll('.only-one').forEach(o=>{ if(o!==cb) o.checked=false; });
+          }
+        });
+      });
+
+      // Evrak ekle
+      let docIndex = document.querySelectorAll('#docsTbody tr').length;
+      document.getElementById('btnDocAdd').addEventListener('click', ()=>{
+        const tip = document.getElementById('evrakSelect').value || '';
+        const not = document.getElementById('evrakNoteType').value || '';
+        // seçilen seçenek varsa (Filtre/Personel/Araç) onu tip'e ekle
+        const opt = Array.from(document.querySelectorAll('.only-one')).find(x=>x.checked);
+        const chosen = opt ? opt.value : '';
+        const finalTip = chosen ? (tip ? (tip + ' / ' + chosen) : chosen) : tip;
+
+        if(!finalTip && !not){ return; }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${finalTip || '-' }
+            <input type="hidden" name="Input.Docs[${docIndex}].Tip" value="${escapeHtml(finalTip)}" />
+          </td>
+          <td>${not || '-' }
+            <input type="hidden" name="Input.Docs[${docIndex}].Not" value="${escapeHtml(not)}" />
+          </td>
+          <td class="right">
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Sil</button>
+          </td>`;
+        document.getElementById('docsTbody').appendChild(tr);
+        docIndex++;
+
+        // alanları temizle
+        document.getElementById('evrakSelect').value = '';
+        document.getElementById('evrakNoteType').value = '';
+        document.querySelectorAll('.only-one').forEach(o=>o.checked=false);
+      });
+
+      // Personel ekle
+      let staffIndex = document.querySelectorAll('#staffTbody tr').length;
+      document.getElementById('btnStaffAdd').addEventListener('click', ()=>{
+        const bolum = document.getElementById('bolumSelect').value || '';
+        const ad = document.getElementById('personelAd').value.trim();
+        if(!bolum || !ad){ return; }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${bolum}
+            <input type="hidden" name="Input.Staff[${staffIndex}].Bolum" value="${escapeHtml(bolum)}" />
+          </td>
+          <td>${ad}
+            <input type="hidden" name="Input.Staff[${staffIndex}].Personel" value="${escapeHtml(ad)}" />
+          </td>
+          <td class="right">
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Sil</button>
+          </td>`;
+        document.getElementById('staffTbody').appendChild(tr);
+        staffIndex++;
+
+        document.getElementById('personelAd').value = '';
+      });
+
+      // utils
+      window.removeRow = function(btn){
+        const tr = btn.closest('tr');
+        if(tr) tr.remove();
+      }
+      function showToast(message){
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(()=>toast.classList.remove('show'), 4000);
+      }
+      function escapeHtml(s){
+        return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+      }
+    })();
+  </script>
+}

@@ -1,0 +1,162 @@
+@page
+@model GostergePaneliModel
+@{
+    ViewData["Title"] = "Gösterge Paneli";
+    ViewData["ContainerClass"] = "container";
+}
+
+<style>
+    /* Sadece bu sayfaya özel küçük çizgi göstergeleri */
+    .krow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 14px 0
+    }
+
+    .kleft {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #334155
+    }
+
+    .kbar {
+        display: inline-block;
+        width: 28px;
+        height: 5px;
+        border-radius: 999px;
+        background: #0f172a
+    }
+
+    .kbar--amber {
+        background: #d97706
+    }
+
+    .knum {
+        font-weight: 700;
+        color: #0f172a
+    }
+
+    .muted-sm {
+        color: #64748b;
+        font-size: 13px
+    }
+
+    .full-span {
+        grid-column: 1 / -1;
+    }
+    /* kartı tüm sütunlara yay */
+</style>
+
+<div class="grid">
+    <!-- BUGÜN -->
+    <div class="card">
+        <h2 style="margin:0 0 10px 0">Bugün</h2>
+
+        <div class="krow">
+            <div class="kleft"><span class="kbar"></span> <span>Planlı Ziyaret</span></div>
+            <div class="knum">@Model.Today.PlanliZiyaret</div>
+        </div>
+
+        <div class="krow">
+            <div class="kleft"><span class="kbar"></span> <span>Onay Bekleyen</span></div>
+            <div class="knum">@Model.Today.OnayBekleyen</div>
+        </div>
+
+        <div class="krow">
+            <div class="kleft"><span class="kbar kbar--amber"></span> <span>Süresi Yaklaşan Evrak</span></div>
+            <div class="knum">@Model.Today.SuresiYaklasanEvrak</div>
+        </div>
+
+        <div class="muted-sm">Son güncelleme: @Model.Now.ToString("HH:mm")</div>
+    </div>
+
+    <!-- İÇERİDEKİLER -->
+    <div class="card">
+        <h2 style="margin:0 0 10px 0">İçeridekiler</h2>
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Firma</th>
+                        <th>Kişi</th>
+                        <th>Bölüm</th>
+                        <th>Giriş</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Inside.Count == 0)
+                    {
+                        <tr><td colspan="4" class="muted-sm">Kayıt yok</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var r in Model.Inside)
+                        {
+                            <tr>
+                                <td>@r.Firma</td>
+                                <td>@r.Kisi</td>
+                                <td>@r.Bolum</td>
+                                <td>@r.Zaman.ToString("HH:mm")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- BUGÜN ÇIKIŞ YAPANLAR -->
+    <div class="card">
+        <h2 style="margin:0 0 10px 0">Bugün Çıkış Yapanlar</h2>
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Firma</th>
+                        <th>Kişi</th>
+                        <th>Bölüm</th>
+                        <th>Çıkış</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.TodayExits.Count == 0)
+                    {
+                        <tr><td colspan="4" class="muted-sm">Kayıt yok</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var r in Model.TodayExits)
+                        {
+                            <tr>
+                                <td>@r.Firma</td>
+                                <td>@r.Kisi</td>
+                                <td>@r.Bolum</td>
+                                <td>@r.Zaman.ToString("HH:mm")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- UYARILAR (tam genişlik) -->
+    <div class="card full-span">
+        <h2 style="margin:0 0 10px 0">Uyarılar</h2>
+        @if (Model.Alerts.Count == 0)
+        {
+            <div class="muted-sm">Uyarı yok.</div>
+        }
+        else
+        {
+            <ul style="margin:6px 0 0 18px;">
+                @foreach (var a in Model.Alerts)
+                {
+                    <li>@a</li>
+                }
+            </ul>
+        }
+    </div>
+</div>

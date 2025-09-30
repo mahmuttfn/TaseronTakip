@@ -1,0 +1,125 @@
+@page "{id?}"
+@model BolumKartlariModel
+@{
+    ViewData["Title"] = "Bölüm Kartları";
+    ViewData["ContainerClass"] = "container";
+}
+
+<div class="page__head">
+    <h1>Bölüm Kartları</h1>
+</div>
+
+<div id="toast" class="toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+
+<form id="frmBolum" method="post" asp-page="./BolumKartlari" asp-page-handler="Save" novalidate data-isupdate="@((Model.Input.Id>0).ToString().ToLower())">
+    <input type="hidden" asp-for="Input.Id" id="Input_Id" />
+    <div class="card p-20">
+        <div class="grid grid-2">
+            <div>
+                <label>Bölüm Adı</label>
+                <input asp-for="Input.Ad" class="form-input" />
+                <span asp-validation-for="Input.Ad" class="text-danger"></span>
+            </div>
+            <div>
+                <label>Kısa Kod</label>
+                <input asp-for="Input.KisaKod" class="form-input" />
+            </div>
+            <div>
+                <label>Sorumlu</label>
+                <input asp-for="Input.Sorumlu" class="form-input" />
+            </div>
+            <div class="col-span-2">
+                <label>Açıklama</label>
+                <input asp-for="Input.Aciklama" class="form-input" />
+            </div>
+            <div>
+                <label>Durum</label>
+                <select asp-for="Input.Aktif" class="form-input">
+                    <option value="true">Aktif</option>
+                    <option value="false">Pasif</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="right mt-16" style="gap:8px">
+            <button type="button" id="btnClear" class="btn btn-sm">Temizle</button>
+            <button type="submit" id="btnSubmit" class="btn btn-primary">@(Model.Input.Id > 0 ? "Güncelle" : "Kaydet")</button>
+        </div>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger mt-10"></div>
+    </div>
+</form>
+
+<div class="card p-20 mt-16">
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Ad</th>
+                    <th>Kısa Kod</th>
+                    <th>Sorumlu</th>
+                    <th>Durum</th>
+                    <th class="right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in Model.Records)
+                {
+                    <tr>
+                        <td>@b.Id</td>
+                        <td>@b.Ad</td>
+                        <td>@(b.KisaKod ?? "-")</td>
+                        <td>@(b.Sorumlu ?? "-")</td>
+                        <td>@(b.Aktif ? "Aktif" : "Pasif")</td>
+                        <td class="right">
+                            <a class="btn btn-sm" asp-page="./BolumKartlari" asp-route-id="@b.Id">Düzenle</a>
+                            <form method="post" asp-page="./BolumKartlari" asp-page-handler="Delete" asp-route-id="@b.Id" style="display:inline" onsubmit="return confirm('Kayıt silinsin mi?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function(){
+          const form=document.getElementById('frmBolum');
+          const toast=document.getElementById('toast');
+          const btnClear=document.getElementById('btnClear');
+          const btnSubmit=document.getElementById('btnSubmit');
+
+          (function normalizeUrl(){
+            const baseUrl='@Url.Page("./BolumKartlari")';
+            if(location.search.includes('handler=') || /\/BolumKartlari\/\d+$/i.test(location.pathname)){ history.replaceState({},'',baseUrl); }
+          })();
+
+          form.addEventListener('submit', function(e){
+            const isUpdate=form.dataset.isupdate==='true';
+            if(!confirm(isUpdate?'Bilgiler güncellensin mi?':'Bilgiler kaydedilsin mi?')){ e.preventDefault(); }
+          });
+
+          btnClear.addEventListener('click', function(){
+            hardClearForm(form); showToast('Form temizlendi');
+            const baseUrl='@Url.Page("./BolumKartlari")'; history.replaceState({},'',baseUrl);
+          });
+
+          const initialMsg=(toast?.dataset?.msg||'').trim(); if(initialMsg){ showToast(initialMsg); }
+
+          function hardClearForm(frm){
+            frm.querySelectorAll('input,select,textarea').forEach(el=>{
+              if(el.type==='hidden' && el.id==='Input_Id'){ el.value=0; return; }
+              if(el.type==='checkbox'||el.type==='radio'){ el.checked=false; return; }
+              el.value='';
+            });
+            frm.dataset.isupdate='false'; if(btnSubmit) btnSubmit.textContent='Kaydet';
+          }
+          function showToast(m){ if(!toast) return; toast.textContent=m; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),4000); }
+        })();
+    </script>
+}

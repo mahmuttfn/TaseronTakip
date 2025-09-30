@@ -1,0 +1,166 @@
+@page
+@model KullaniciTanimlariModel
+@{
+    ViewData["Title"] = "Kullanıcı Tanımları ve Yetkilendirme";
+    ViewData["ContainerClass"] = "container";
+}
+
+<div class="page__head">
+    <h1>Kullanıcı Tanımları ve Yetkilendirme</h1>
+</div>
+
+<!-- toast -->
+<div id="toast" class="toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+
+<!-- EKLEME FORMU -->
+<form id="frmAdd"
+      method="post"
+      asp-page="./KullaniciTanimlari"
+      asp-page-handler="Add"
+      novalidate>
+    <div class="card p-20">
+        <div class="grid grid-2">
+            <div>
+                <input asp-for="NewUser.FullName" class="form-input" placeholder="Ad Soyad" />
+                <span asp-validation-for="NewUser.FullName" class="text-danger"></span>
+            </div>
+            <div>
+                <input asp-for="NewUser.Email" class="form-input" placeholder="E-posta" />
+                <span asp-validation-for="NewUser.Email" class="text-danger"></span>
+            </div>
+
+            <div>
+                <input asp-for="NewUser.UserName" class="form-input" placeholder="Kullanıcı Adı" />
+                <span asp-validation-for="NewUser.UserName" class="text-danger"></span>
+            </div>
+            <div>
+                <input asp-for="NewUser.TempPassword" class="form-input" placeholder="Geçici Şifre" />
+                <span asp-validation-for="NewUser.TempPassword" class="text-danger"></span>
+            </div>
+
+            <div>
+                <select asp-for="NewUser.Role" class="form-input">
+                    <option value="Yönetici">Yönetici</option>
+                    <option value="Kullanıcı">Kullanıcı</option>
+                </select>
+            </div>
+
+            <div>
+                <select asp-for="NewUser.IsActive" class="form-input">
+                    <option value="true">Aktif</option>
+                    <option value="false">Pasif</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="right mt-16">
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Kullanıcı eklensin mi?')">Ekle</button>
+        </div>
+    </div>
+</form>
+
+<!-- KULLANICI LİSTESİ -->
+<div class="card p-20 mt-16">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Ad Soyad</th>
+                <th>E-posta</th>
+                <th>Rol</th>
+                <th>Kullanıcı</th>
+                <th>Durum</th>
+                <th class="right">İşlem</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in Model.Users)
+            {
+                <tr>
+                    <td>@u.FullName</td>
+                    <td>@u.Email</td>
+                    <td>@u.Role</td>
+                    <td>@u.UserName</td>
+                    <td>@(u.IsActive ? "Aktif" : "Pasif")</td>
+                    <td class="right">
+                        <form method="post"
+                              asp-page="./KullaniciTanimlari"
+                              asp-page-handler="ToggleActive"
+                              asp-route-id="@u.Id"
+                              style="display:inline">
+                            <button type="submit" class="btn btn-sm"
+                                    onclick="return confirm('@(u.IsActive ? "Pasifleştirilsin mi?" : "Aktifleştirilsin mi?")')">
+                                @(u.IsActive ? "Pasifleştir" : "Aktifleştir")
+                            </button>
+                        </form>
+                        <a class="btn btn-sm" asp-page="./KullaniciTanimlari" asp-route-selectedUserId="@u.Id">Yetkiler</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- YETKİ MATRİSİ -->
+<div class="card p-20 mt-16">
+    <h3 style="margin:0 0 10px 0">Mevcut Kullanıcı Yetkileri (seçili): @Model.SelectedUser?.FullName</h3>
+
+    <form id="frmPerms"
+          method="post"
+          asp-page="./KullaniciTanimlari"
+          asp-page-handler="SavePerms">
+        <input type="hidden" name="SelectedUserId" value="@Model.SelectedUser?.Id" />
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Menü</th>
+                        <th style="width:140px;text-align:center">Görsün</th>
+                        <th style="width:200px;text-align:center">İşlem Yapabilsin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Permissions.Count; i++)
+                    {
+                        <tr>
+                            <td>
+                                @Model.Permissions[i].Title
+                                <input type="hidden" asp-for="Permissions[i].Key" />
+                                <input type="hidden" asp-for="Permissions[i].Title" />
+                            </td>
+                            <td style="text-align:center">
+                                <input asp-for="Permissions[i].CanView" type="checkbox" />
+                            </td>
+                            <td style="text-align:center">
+                                <input asp-for="Permissions[i].CanAct" type="checkbox" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="right mt-16">
+            <button type="submit" class="btn btn-primary"
+                    onclick="return confirm('Yetkiler kaydedilsin mi?')">
+                Yetkileri Kaydet
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+          const toast = document.getElementById('toast');
+          const msg = (toast?.dataset?.msg || '').trim();
+          if (msg) showToast(msg);
+
+          function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+          }
+        })();
+    </script>
+}

@@ -1,0 +1,198 @@
+@page "{id?}"
+@model SirketTanimlariModel
+@{
+    ViewData["Title"] = "Şirket Tanımları";
+    ViewData["ContainerClass"] = "container";
+}
+
+<div class="page__head">
+  <h1>Şirket Tanımları</h1>
+</div>
+
+<div id="toast" class="toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+
+<form id="frmCompany"
+      method="post"
+      asp-page="./SirketTanimlari"
+      asp-page-handler="Save"
+      novalidate
+      data-isupdate="@((Model.Input.Id > 0).ToString().ToLower())">
+  <input type="hidden" asp-for="Input.Id" id="Input_Id" />
+
+  <div class="card p-20">
+    <div class="grid grid-2 gap-14">
+      <div>
+        <label>Şirket Adı</label>
+        <input asp-for="Input.SirketAdi" class="form-input" placeholder="ZMSoft A.Ş." />
+      </div>
+      <div>
+        <label>Telefon</label>
+        <input asp-for="Input.Telefon" class="form-input" placeholder="+90 ..." />
+      </div>
+
+      <div>
+        <label>Adres</label>
+        <input asp-for="Input.Adres" class="form-input" placeholder="Mahalle, Cadde, No..." />
+      </div>
+      <div>
+        <label>Fax</label>
+        <input asp-for="Input.Fax" class="form-input" />
+      </div>
+
+      <div>
+        <label>Mail</label>
+        <input asp-for="Input.Mail" class="form-input" placeholder="" />
+      </div>
+      <div>
+        <label>Taşeron Dosya Yolu/No</label>
+        <input asp-for="Input.TaseronDosyaYoluNo" class="form-input" placeholder="\\paylasim\\taseron veya ID" />
+      </div>
+
+      <div class="col-span-2 sep-top"><h3>Mail Sunucu Bilgileri</h3></div>
+
+      <div>
+        <label>Mail Sunucu</label>
+        <input asp-for="Input.SmtpHost" class="form-input" placeholder="smtp.domain.com" />
+      </div>
+      <div>
+        <label>Port</label>
+        <input asp-for="Input.SmtpPort" type="number" class="form-input" placeholder="587" />
+      </div>
+      <div>
+        <label>Kullanıcı</label>
+        <input asp-for="Input.SmtpUser" class="form-input" placeholder="" />
+      </div>
+      <div>
+        <label>Şifre</label>
+        <input asp-for="Input.SmtpPassword" type="password" class="form-input" />
+      </div>
+    </div>
+
+    <div class="right mt-16" style="gap:8px">
+      <button type="button" id="btnClear" class="btn btn-sm">Temizle</button>
+      <button type="submit" id="btnSubmit" class="btn btn-primary">
+        @(Model.Input.Id > 0 ? "Güncelle" : "Kaydet")
+      </button>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger mt-10"></div>
+  </div>
+</form>
+
+<div class="card p-20 mt-16">
+  <div class="page__head" style="margin-bottom:8px;">
+    <h3 style="margin:0">Kayıtlar</h3>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Şirket</th>
+          <th>Mail</th>
+          <th>Telefon</th>
+          <th>SMTP</th>
+          <th class="right">İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+      @foreach (var r in Model.Records)
+      {
+        <tr>
+          <td>@r.Id</td>
+          <td>@r.SirketAdi</td>
+          <td>@r.Mail</td>
+          <td>@r.Telefon</td>
+          <td>@(string.IsNullOrWhiteSpace(r.SmtpHost) ? "-" : r.SmtpHost)</td>
+          <td class="right">
+            <a class="btn btn-sm" asp-page="./SirketTanimlari" asp-route-id="@r.Id">Düzenle</a>
+            <form method="post"
+                  asp-page="./SirketTanimlari"
+                  asp-page-handler="Delete"
+                  asp-route-id="@r.Id"
+                  style="display:inline"
+                  onsubmit="return confirm('Kayıt silinsin mi?');">
+              <button type="submit" class="btn btn-sm btn-danger">Sil</button>
+            </form>
+          </td>
+        </tr>
+      }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@section Scripts {
+  <partial name="_ValidationScriptsPartial" />
+  <script>
+    (function () {
+      const form = document.getElementById('frmCompany');
+      const btnClear = document.getElementById('btnClear');
+      const btnSubmit = document.getElementById('btnSubmit');
+      const toast = document.getElementById('toast');
+
+      // URL'de ?handler=... veya /{id} varsa sadeleştir (yenilemede dolmayı engeller)
+      (function normalizeUrl(){
+        const baseUrl = '@Url.Page("./SirketTanimlari")';
+        if (location.search.includes('handler=') || /\/SirketTanimlari\/\d+$/i.test(location.pathname)) {
+          history.replaceState({}, '', baseUrl);
+        }
+      })();
+
+      // Kaydet/Güncelle onayı
+      form.addEventListener('submit', function (e) {
+        const isUpdate = form.dataset.isupdate === 'true';
+        const msg = isUpdate ? 'Bilgiler güncellensin mi?' : 'Bilgiler kaydedilsin mi?';
+        if (!confirm(msg)) { e.preventDefault(); return; }
+      });
+
+      // TEMİZLE
+      btnClear.addEventListener('click', function () {
+        hardClearForm(form);
+        showToast('Form temizlendi');
+
+        const baseUrl = '@Url.Page("./SirketTanimlari")';
+        if (baseUrl && location.pathname !== baseUrl) {
+          history.replaceState({}, '', baseUrl);
+        }
+      });
+
+      // İşlem sonrası toast (TempData["Ok"])
+      const initialMsg = (toast?.dataset?.msg || '').trim();
+      if (initialMsg) { showToast(initialMsg); }
+
+      function hardClearForm(frm) {
+        frm.querySelectorAll('input, textarea, select').forEach(el => {
+          if (el.type === 'hidden' && el.id === 'Input_Id') { el.value = 0; return; }
+          if (el.type === 'checkbox' || el.type === 'radio') { el.checked = false; return; }
+          el.value = '';
+        });
+
+        // validation görünümü temizle
+        frm.querySelectorAll('.input-validation-error').forEach(el => el.classList.remove('input-validation-error'));
+        frm.querySelectorAll('[data-valmsg-for]').forEach(el => {
+          el.textContent = '';
+          el.classList.remove('field-validation-error');
+          el.classList.add('field-validation-valid');
+        });
+        const summary = frm.querySelector('.validation-summary-errors, [data-valmsg-summary="true"]');
+        if (summary) { summary.innerHTML = ''; summary.classList.remove('validation-summary-errors'); summary.classList.add('validation-summary-valid'); }
+
+        // yeni kayıt moduna dön
+        frm.dataset.isupdate = 'false';
+        if (btnSubmit) btnSubmit.textContent = 'Kaydet';
+
+        const first = frm.querySelector('input.form-input, textarea.form-input, select.form-input');
+        if (first) first.focus();
+      }
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 4000);
+      }
+    })();
+  </script>
+}
