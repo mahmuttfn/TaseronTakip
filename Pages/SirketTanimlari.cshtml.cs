@@ -1,136 +1,149 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using TaseronTakip.Models;
 
-namespace TaseronTakip.Pages;
-
-public class SirketTanimlariModel : PageModel
+namespace TaseronTakip.Pages
 {
-    private readonly AppDbContext _db;
-    public SirketTanimlariModel(AppDbContext db) => _db = db;
-
-    public List<CompanySettings> Records { get; set; } = new();
-
-    [BindProperty]
-    public InputModel Input { get; set; } = new();
-
-    public class InputModel
+    public class SirketTanimlariModel : PageModel
     {
-        public int Id { get; set; }
+        private readonly AppDbContext _db;
+        public SirketTanimlariModel(AppDbContext db) => _db = db;
 
-        [Display(Name = "Şirket Adı"), MaxLength(200)]
-        public string? SirketAdi { get; set; }
+        public IList<Sirket> Kayitlar { get; set; } = new List<Sirket>();
 
-        [MaxLength(50)]
-        public string? Telefon { get; set; }
+        [BindProperty]
+        public SirketInput Input { get; set; } = new();
 
-        [MaxLength(400)]
-        public string? Adres { get; set; }
-
-        [MaxLength(50)]
-        public string? Fax { get; set; }
-
-        [EmailAddress, MaxLength(200)]
-        public string? Mail { get; set; }
-
-        [Display(Name = "Taşeron Dosya Yolu/No"), MaxLength(400)]
-        public string? TaseronDosyaYoluNo { get; set; }
-
-        [Display(Name = "Mail Sunucu"), MaxLength(200)]
-        public string? SmtpHost { get; set; }
-
-        [Range(1, 65535)]
-        public int? SmtpPort { get; set; }
-
-        [Display(Name = "Kullanıcı"), MaxLength(200)]
-        public string? SmtpUser { get; set; }
-
-        [Display(Name = "Şifre"), MaxLength(400)]
-        public string? SmtpPassword { get; set; }
-    }
-
-    public async Task OnGetAsync(int? id)
-    {
-        Records = await _db.CompanySettings.AsNoTracking()
-                                           .OrderByDescending(x => x.Id)
-                                           .ToListAsync();
-
-        if (id is int editId)
+        public void OnGet(int? id)
         {
-            var e = await _db.CompanySettings.AsNoTracking()
-                                             .FirstOrDefaultAsync(x => x.Id == editId);
-            if (e != null)
+            Kayitlar = _db.Set<Sirket>().OrderBy(x => x.Unvan).ToList();
+
+            if (id.HasValue)
             {
-                Input = new InputModel
-                {
-                    Id = e.Id,
-                    SirketAdi = e.SirketAdi,
-                    Telefon = e.Telefon,
-                    Adres = e.Adres,
-                    Fax = e.Fax,
-                    Mail = e.Mail,
-                    TaseronDosyaYoluNo = e.TaseronDosyaYoluNo,
-                    SmtpHost = e.SmtpHost,
-                    SmtpPort = e.SmtpPort,
-                    SmtpUser = e.SmtpUser,
-                    SmtpPassword = e.SmtpPassword
-                };
+                var ent = _db.Set<Sirket>().Find(id.Value);
+                if (ent != null) Input = SirketInput.FromEntity(ent);
             }
         }
-    }
 
-    public async Task<IActionResult> OnPostSaveAsync()
-    {
-        // Listeyi doldur (ModelState invalid olursa sayfayı tekrar çizerken lazım)
-        Records = await _db.CompanySettings.AsNoTracking()
-                                           .OrderByDescending(x => x.Id)
-                                           .ToListAsync();
-
-        if (!ModelState.IsValid) return Page();
-
-        CompanySettings e;
-        if (Input.Id > 0)
+        public IActionResult OnPostCreate()
         {
-            e = await _db.CompanySettings.FindAsync(Input.Id)
-                ?? throw new InvalidOperationException("Kayıt bulunamadı.");
-        }
-        else
-        {
-            e = new CompanySettings();
-            _db.CompanySettings.Add(e);
+            Kayitlar = _db.Set<Sirket>().OrderBy(x => x.Unvan).ToList();
+            if (!ModelState.IsValid) return Page();
+
+            var ent = Input.ToEntity();
+            _db.Add(ent);
+            _db.SaveChanges();
+            return RedirectToPage();
         }
 
-        e.SirketAdi = Input.SirketAdi?.Trim();
-        e.Telefon = Input.Telefon?.Trim();
-        e.Adres = Input.Adres?.Trim();
-        e.Fax = Input.Fax?.Trim();
-        e.Mail = Input.Mail?.Trim();
-        e.TaseronDosyaYoluNo = Input.TaseronDosyaYoluNo?.Trim();
-        e.SmtpHost = Input.SmtpHost?.Trim();
-        e.SmtpPort = Input.SmtpPort;
-        e.SmtpUser = Input.SmtpUser?.Trim();
-        e.SmtpPassword = Input.SmtpPassword;
-
-        await _db.SaveChangesAsync();
-
-        TempData["Ok"] = (Input.Id > 0 ? "Güncellendi." : "Kaydedildi.");
-
-        // id'yi taşımamak için explicit redirect (formun temiz gelmesi için kritik)
-        return RedirectToPage("./SirketTanimlari");
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        var e = await _db.CompanySettings.FindAsync(id);
-        if (e != null)
+        public IActionResult OnPostEdit()
         {
-            _db.CompanySettings.Remove(e);
-            await _db.SaveChangesAsync();
-            TempData["Ok"] = "Kayıt silindi.";
+            Kayitlar = _db.Set<Sirket>().OrderBy(x => x.Unvan).ToList();
+            if (!ModelState.IsValid) return Page();
+
+            var ent = _db.Set<Sirket>().Find(Input.Id);
+            if (ent == null) return NotFound();
+
+            Input.ApplyTo(ent);
+            _db.SaveChanges();
+            return RedirectToPage();
         }
 
-        // id'yi taşımamak için explicit redirect
-        return RedirectToPage("./SirketTanimlari");
+        public IActionResult OnPostDelete(int id)
+        {
+            var ent = _db.Set<Sirket>().Find(id);
+            if (ent == null) return NotFound();
+            _db.Remove(ent);
+            _db.SaveChanges();
+            return RedirectToPage();
+        }
+
+        public IActionResult OnPostToggle(int id)
+        {
+            var ent = _db.Set<Sirket>().Find(id);
+            if (ent == null) return NotFound();
+            ent.Aktif = !ent.Aktif;
+            _db.SaveChanges();
+            return RedirectToPage();
+        }
+
+        public class SirketInput
+        {
+            public int Id { get; set; }
+
+            [Required, MaxLength(160)]
+            public string Unvan { get; set; } = string.Empty;
+
+            [MaxLength(40)] public string? VergiDairesi { get; set; }
+            [MaxLength(20)] public string? VergiNo { get; set; }
+            [MaxLength(30)] public string? MersisNo { get; set; }
+            [MaxLength(30)] public string? TicaretSicilNo { get; set; }
+            [MaxLength(40)] public string? SGKIşyeriSicilNo { get; set; }
+            [MaxLength(120)] public string? KEPAdres { get; set; }
+            [MaxLength(120)] public string? WebSite { get; set; }
+            [MaxLength(20)] public string? Telefon { get; set; }
+            [MaxLength(120)] public string? YetkiliAdSoyad { get; set; }
+            [MaxLength(60)] public string? YetkiliGorev { get; set; }
+            [MaxLength(20)] public string? YetkiliTelefon { get; set; }
+            [MaxLength(34)] public string? IBAN { get; set; }
+            [MaxLength(80)] public string? BankaAdi { get; set; }
+            [MaxLength(240)] public string? Adres { get; set; }
+            public bool Aktif { get; set; } = true;
+
+            public Sirket ToEntity() => new()
+            {
+                Unvan = Unvan.Trim(),
+                VergiDairesi = VergiDairesi,
+                VergiNo = VergiNo,
+                MersisNo = MersisNo,
+                TicaretSicilNo = TicaretSicilNo,
+                SGKIşyeriSicilNo = SGKIşyeriSicilNo,
+                KEPAdres = KEPAdres,
+                WebSite = WebSite,
+                Telefon = Telefon,
+                YetkiliAdSoyad = YetkiliAdSoyad,
+                YetkiliGorev = YetkiliGorev,
+                YetkiliTelefon = YetkiliTelefon,
+                IBAN = IBAN,
+                BankaAdi = BankaAdi,
+                Adres = Adres,
+                Aktif = Aktif
+            };
+
+            public static SirketInput FromEntity(Sirket e) => new()
+            {
+                Id = e.Id,
+                Unvan = e.Unvan,
+                VergiDairesi = e.VergiDairesi,
+                VergiNo = e.VergiNo,
+                MersisNo = e.MersisNo,
+                TicaretSicilNo = e.TicaretSicilNo,
+                SGKIşyeriSicilNo = e.SGKIşyeriSicilNo,
+                KEPAdres = e.KEPAdres,
+                WebSite = e.WebSite,
+                Telefon = e.Telefon,
+                YetkiliAdSoyad = e.YetkiliAdSoyad,
+                YetkiliGorev = e.YetkiliGorev,
+                YetkiliTelefon = e.YetkiliTelefon,
+                IBAN = e.IBAN,
+                BankaAdi = e.BankaAdi,
+                Adres = e.Adres,
+                Aktif = e.Aktif
+            };
+
+            public void ApplyTo(Sirket e)
+            {
+                e.Unvan = Unvan.Trim();
+                e.VergiDairesi = VergiDairesi; e.VergiNo = VergiNo;
+                e.MersisNo = MersisNo; e.TicaretSicilNo = TicaretSicilNo;
+                e.SGKIşyeriSicilNo = SGKIşyeriSicilNo; e.KEPAdres = KEPAdres;
+                e.WebSite = WebSite; e.Telefon = Telefon;
+                e.YetkiliAdSoyad = YetkiliAdSoyad; e.YetkiliGorev = YetkiliGorev; e.YetkiliTelefon = YetkiliTelefon;
+                e.IBAN = IBAN; e.BankaAdi = BankaAdi;
+                e.Adres = Adres; e.Aktif = Aktif;
+            }
+        }
     }
 }

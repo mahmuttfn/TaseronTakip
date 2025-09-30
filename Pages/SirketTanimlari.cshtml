@@ -1,198 +1,307 @@
 @page "{id?}"
-@model SirketTanimlariModel
+@model TaseronTakip.Pages.SirketTanimlariModel
+@using TaseronTakip.Models
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     ViewData["Title"] = "Şirket Tanımları";
-    ViewData["ContainerClass"] = "container";
+    var toplam = Model.Kayitlar?.Count ?? 0;
+    var aktif = Model.Kayitlar?.Count(x => x.Aktif) ?? 0;
+    var pasif = toplam - aktif;
+    string Dot(bool ok) => $"<span class=\"status-dot {(ok ? "dot-aktif" : "dot-pasif")}\"></span>" + (ok ? "Aktif" : "Pasif");
 }
 
-<div class="page__head">
-  <h1>Şirket Tanımları</h1>
-</div>
+<style>
+    :root {
+        --bg: #0b1020;
+        --card: rgba(255,255,255,.08);
+        --border: rgba(255,255,255,.12);
+        --text: #e7eaf0;
+        --muted: #a7afc7;
+        --accent: #6ea8fe;
+        --success: #4ade80;
+    }
 
-<div id="toast" class="toast" data-msg="@(TempData["Ok"] ?? "")"></div>
+    [data-theme="light"] {
+        --bg: #f6f7fb;
+        --card: #fff;
+        --border: #e6e8f0;
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #0d6efd;
+        --success: #198754;
+    }
 
-<form id="frmCompany"
-      method="post"
-      asp-page="./SirketTanimlari"
-      asp-page-handler="Save"
-      novalidate
-      data-isupdate="@((Model.Input.Id > 0).ToString().ToLower())">
-  <input type="hidden" asp-for="Input.Id" id="Input_Id" />
+    body {
+        background: var(--bg);
+        color: var(--text)
+    }
 
-  <div class="card p-20">
-    <div class="grid grid-2 gap-14">
-      <div>
-        <label>Şirket Adı</label>
-        <input asp-for="Input.SirketAdi" class="form-input" placeholder="ZMSoft A.Ş." />
-      </div>
-      <div>
-        <label>Telefon</label>
-        <input asp-for="Input.Telefon" class="form-input" placeholder="+90 ..." />
-      </div>
+    .glass {
+        background: var(--card);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(12px);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.2)
+    }
 
-      <div>
-        <label>Adres</label>
-        <input asp-for="Input.Adres" class="form-input" placeholder="Mahalle, Cadde, No..." />
-      </div>
-      <div>
-        <label>Fax</label>
-        <input asp-for="Input.Fax" class="form-input" />
-      </div>
+    .card-header, .card-footer {
+        background: transparent;
+        border-color: var(--border) !important
+    }
 
-      <div>
-        <label>Mail</label>
-        <input asp-for="Input.Mail" class="form-input" placeholder="" />
-      </div>
-      <div>
-        <label>Taşeron Dosya Yolu/No</label>
-        <input asp-for="Input.TaseronDosyaYoluNo" class="form-input" placeholder="\\paylasim\\taseron veya ID" />
-      </div>
+    .text-muted, .form-text, .small {
+        color: var(--muted) !important
+    }
 
-      <div class="col-span-2 sep-top"><h3>Mail Sunucu Bilgileri</h3></div>
+    .status-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        margin-right: 6px
+    }
 
-      <div>
-        <label>Mail Sunucu</label>
-        <input asp-for="Input.SmtpHost" class="form-input" placeholder="smtp.domain.com" />
-      </div>
-      <div>
-        <label>Port</label>
-        <input asp-for="Input.SmtpPort" type="number" class="form-input" placeholder="587" />
-      </div>
-      <div>
-        <label>Kullanıcı</label>
-        <input asp-for="Input.SmtpUser" class="form-input" placeholder="" />
-      </div>
-      <div>
-        <label>Şifre</label>
-        <input asp-for="Input.SmtpPassword" type="password" class="form-input" />
-      </div>
+    .dot-aktif {
+        background: var(--success)
+    }
+
+    .dot-pasif {
+        background: var(--muted)
+    }
+
+    table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--card) !important;
+        z-index: 1
+    }
+
+    .table-hover tbody tr:hover {
+        background: rgba(255,255,255,.04)
+    }
+</style>
+
+<div class="container-fluid px-0" id="themeRoot" data-theme="dark">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div>
+            <h2 class="h5 mb-1">Şirket Tanımları</h2>
+            <div class="text-muted small">Mail ve Taşeron Dosya No kaldırıldı; güncel alanlar eklendi.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-dark">Toplam: @toplam</span>
+            <span class="badge bg-success">Aktif: @aktif</span>
+            <span class="badge bg-secondary">Pasif: @pasif</span>
+            <a class="btn btn-sm btn-success" href="/SirketTanimlari">Yeni</a>
+        </div>
     </div>
 
-    <div class="right mt-16" style="gap:8px">
-      <button type="button" id="btnClear" class="btn btn-sm">Temizle</button>
-      <button type="submit" id="btnSubmit" class="btn btn-primary">
-        @(Model.Input.Id > 0 ? "Güncelle" : "Kaydet")
-      </button>
+    <div class="row g-4">
+        <!-- FORM -->
+        <div class="col-lg-5">
+            <div class="card glass">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold">@(Model.Input.Id > 0 ? "Şirketi Düzenle" : "Yeni Şirket")</div>
+                    @if (Model.Input.Id > 0)
+                    {
+                        <a class="btn btn-sm btn-outline-secondary" href="/SirketTanimlari">Yeni</a>
+                    }
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <form method="post" asp-page-handler="@(Model.Input.Id>0 ? "Edit" : "Create")">
+                        <input type="hidden" asp-for="Input.Id" />
+                        <div class="mb-2">
+                            <label asp-for="Input.Unvan" class="form-label">Ünvan *</label>
+                            <input asp-for="Input.Unvan" class="form-control" placeholder="Örn: ABC Taahhüt A.Ş." />
+                            <span asp-validation-for="Input.Unvan" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label asp-for="Input.VergiDairesi" class="form-label">Vergi Dairesi</label>
+                                <input asp-for="Input.VergiDairesi" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.VergiNo" class="form-label">Vergi No</label>
+                                <input asp-for="Input.VergiNo" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-0">
+                            <div class="col-md-6">
+                                <label asp-for="Input.MersisNo" class="form-label">MERSİS No</label>
+                                <input asp-for="Input.MersisNo" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.TicaretSicilNo" class="form-label">Ticaret Sicil No</label>
+                                <input asp-for="Input.TicaretSicilNo" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-0">
+                            <div class="col-md-6">
+                                <label asp-for="Input.SGKIşyeriSicilNo" class="form-label">SGK İşyeri Sicil No</label>
+                                <input asp-for="Input.SGKIşyeriSicilNo" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.KEPAdres" class="form-label">KEP Adresi</label>
+                                <input asp-for="Input.KEPAdres" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-0">
+                            <div class="col-md-6">
+                                <label asp-for="Input.WebSite" class="form-label">Web Sitesi</label>
+                                <input asp-for="Input.WebSite" class="form-control" placeholder="https://..." />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Telefon" class="form-label">Telefon</label>
+                                <input asp-for="Input.Telefon" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-0">
+                            <div class="col-md-6">
+                                <label asp-for="Input.YetkiliAdSoyad" class="form-label">Yetkili Ad Soyad</label>
+                                <input asp-for="Input.YetkiliAdSoyad" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.YetkiliGorev" class="form-label">Yetkili Görev</label>
+                                <input asp-for="Input.YetkiliGorev" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-0">
+                            <div class="col-md-6">
+                                <label asp-for="Input.YetkiliTelefon" class="form-label">Yetkili Telefon</label>
+                                <input asp-for="Input.YetkiliTelefon" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.IBAN" class="form-label">IBAN</label>
+                                <input asp-for="Input.IBAN" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-0">
+                            <div class="col-md-6">
+                                <label asp-for="Input.BankaAdi" class="form-label">Banka Adı</label>
+                                <input asp-for="Input.BankaAdi" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Aktif" class="form-label d-block">Durum</label>
+                                <div class="form-check form-switch">
+                                    <input asp-for="Input.Aktif" class="form-check-input" id="aktifSw" />
+                                    <label class="form-check-label" for="aktifSw">Aktif</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-2">
+                            <label asp-for="Input.Adres" class="form-label">Adres</label>
+                            <textarea asp-for="Input.Adres" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-primary" type="submit">@(Model.Input.Id > 0 ? "Güncelle" : "Ekle")</button>
+                            @if (Model.Input.Id > 0)
+                            {
+                                <a class="btn btn-outline-secondary" href="/SirketTanimlari">İptal</a>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- LİSTE -->
+        <div class="col-lg-7">
+            <div class="card glass">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold">Kayıtlı Şirketler</div>
+                    <input id="q" class="form-control form-control-sm" style="max-width:260px" placeholder="Ara (ünvan/vergino/iban)..." />
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:60vh">
+                        <table class="table table-hover table-sm align-middle mb-0" id="tbl">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ünvan</th>
+                                    <th>Vergi</th>
+                                    <th>Yetkili</th>
+                                    <th>İletişim</th>
+                                    <th>Finans</th>
+                                    <th>Durum</th>
+                                    <th style="width:210px">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in Model.Kayitlar)
+                                {
+                                    <tr class="tr">
+                                        <td>
+                                            <div class="fw-medium">@s.Unvan</div>
+                                            <div class="small text-muted">@s.WebSite</div>
+                                        </td>
+                                        <td>
+                                            <div class="small">VD: @s.VergiDairesi</div>
+                                            <div class="small">VN: @s.VergiNo</div>
+                                            <div class="small">MERSİS: @s.MersisNo</div>
+                                            <div class="small">TSN: @s.TicaretSicilNo</div>
+                                            <div class="small">SGK: @s.SGKIşyeriSicilNo</div>
+                                        </td>
+                                        <td>
+                                            <div class="small">@s.YetkiliAdSoyad (@s.YetkiliGorev)</div>
+                                            <div class="small">@s.YetkiliTelefon</div>
+                                        </td>
+                                        <td>
+                                            <div class="small">@s.Telefon</div>
+                                            <div class="small">@s.KEPAdres</div>
+                                            <div class="small">@s.Adres</div>
+                                        </td>
+                                        <td>
+                                            <div class="small">IBAN: @s.IBAN</div>
+                                            <div class="small">Banka: @s.BankaAdi</div>
+                                        </td>
+                                        <td>@Html.Raw(Dot(s.Aktif))</td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                <a class="btn btn-sm btn-outline-primary" href="/SirketTanimlari/@s.Id">Düzenle</a>
+                                                <form method="post" asp-page-handler="Toggle" class="d-inline">
+                                                    <input type="hidden" name="id" value="@s.Id" />
+                                                    <button class="btn btn-sm btn-outline-warning" type="submit">
+                                                        @(s.Aktif ? "Pasifleştir" : "Aktif Et")
+                                                    </button>
+                                                </form>
+                                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Silinsin mi?')">
+                                                    <input type="hidden" name="id" value="@s.Id" />
+                                                    <button class="btn btn-sm btn-outline-danger" type="submit">Sil</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-muted small">
+                    Not: “Mail” ve “Taşeron Dosya No” alanları kaldırıldı; KEP, MERSİS, SGK İşyeri vs. eklendi.
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div asp-validation-summary="ModelOnly" class="text-danger mt-10"></div>
-  </div>
-</form>
-
-<div class="card p-20 mt-16">
-  <div class="page__head" style="margin-bottom:8px;">
-    <h3 style="margin:0">Kayıtlar</h3>
-  </div>
-
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Şirket</th>
-          <th>Mail</th>
-          <th>Telefon</th>
-          <th>SMTP</th>
-          <th class="right">İşlemler</th>
-        </tr>
-      </thead>
-      <tbody>
-      @foreach (var r in Model.Records)
-      {
-        <tr>
-          <td>@r.Id</td>
-          <td>@r.SirketAdi</td>
-          <td>@r.Mail</td>
-          <td>@r.Telefon</td>
-          <td>@(string.IsNullOrWhiteSpace(r.SmtpHost) ? "-" : r.SmtpHost)</td>
-          <td class="right">
-            <a class="btn btn-sm" asp-page="./SirketTanimlari" asp-route-id="@r.Id">Düzenle</a>
-            <form method="post"
-                  asp-page="./SirketTanimlari"
-                  asp-page-handler="Delete"
-                  asp-route-id="@r.Id"
-                  style="display:inline"
-                  onsubmit="return confirm('Kayıt silinsin mi?');">
-              <button type="submit" class="btn btn-sm btn-danger">Sil</button>
-            </form>
-          </td>
-        </tr>
-      }
-      </tbody>
-    </table>
-  </div>
 </div>
 
 @section Scripts {
-  <partial name="_ValidationScriptsPartial" />
-  <script>
-    (function () {
-      const form = document.getElementById('frmCompany');
-      const btnClear = document.getElementById('btnClear');
-      const btnSubmit = document.getElementById('btnSubmit');
-      const toast = document.getElementById('toast');
-
-      // URL'de ?handler=... veya /{id} varsa sadeleştir (yenilemede dolmayı engeller)
-      (function normalizeUrl(){
-        const baseUrl = '@Url.Page("./SirketTanimlari")';
-        if (location.search.includes('handler=') || /\/SirketTanimlari\/\d+$/i.test(location.pathname)) {
-          history.replaceState({}, '', baseUrl);
-        }
-      })();
-
-      // Kaydet/Güncelle onayı
-      form.addEventListener('submit', function (e) {
-        const isUpdate = form.dataset.isupdate === 'true';
-        const msg = isUpdate ? 'Bilgiler güncellensin mi?' : 'Bilgiler kaydedilsin mi?';
-        if (!confirm(msg)) { e.preventDefault(); return; }
-      });
-
-      // TEMİZLE
-      btnClear.addEventListener('click', function () {
-        hardClearForm(form);
-        showToast('Form temizlendi');
-
-        const baseUrl = '@Url.Page("./SirketTanimlari")';
-        if (baseUrl && location.pathname !== baseUrl) {
-          history.replaceState({}, '', baseUrl);
-        }
-      });
-
-      // İşlem sonrası toast (TempData["Ok"])
-      const initialMsg = (toast?.dataset?.msg || '').trim();
-      if (initialMsg) { showToast(initialMsg); }
-
-      function hardClearForm(frm) {
-        frm.querySelectorAll('input, textarea, select').forEach(el => {
-          if (el.type === 'hidden' && el.id === 'Input_Id') { el.value = 0; return; }
-          if (el.type === 'checkbox' || el.type === 'radio') { el.checked = false; return; }
-          el.value = '';
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const q = document.getElementById('q');
+        const rows = () => Array.from(document.querySelectorAll('#tbl .tr'));
+        q?.addEventListener('input', () => {
+            const v = (q.value||'').toLowerCase();
+            rows().forEach(tr => {
+                tr.style.display = tr.innerText.toLowerCase().includes(v) ? '' : 'none';
+            });
         });
-
-        // validation görünümü temizle
-        frm.querySelectorAll('.input-validation-error').forEach(el => el.classList.remove('input-validation-error'));
-        frm.querySelectorAll('[data-valmsg-for]').forEach(el => {
-          el.textContent = '';
-          el.classList.remove('field-validation-error');
-          el.classList.add('field-validation-valid');
-        });
-        const summary = frm.querySelector('.validation-summary-errors, [data-valmsg-summary="true"]');
-        if (summary) { summary.innerHTML = ''; summary.classList.remove('validation-summary-errors'); summary.classList.add('validation-summary-valid'); }
-
-        // yeni kayıt moduna dön
-        frm.dataset.isupdate = 'false';
-        if (btnSubmit) btnSubmit.textContent = 'Kaydet';
-
-        const first = frm.querySelector('input.form-input, textarea.form-input, select.form-input');
-        if (first) first.focus();
-      }
-
-      function showToast(message) {
-        if (!toast) return;
-        toast.textContent = message;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 4000);
-      }
-    })();
-  </script>
+    </script>
 }

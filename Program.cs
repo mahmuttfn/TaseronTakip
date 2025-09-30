@@ -51,7 +51,7 @@ public class AppDbContext : DbContext
     public DbSet<EvrakTurKural> EvrakTurKurallari { get; set; }
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
-
+    public DbSet<Sirket> Sirketler { get; set; }
     public DbSet<AppointmentRequest> AppointmentRequests => Set<AppointmentRequest>();
     public DbSet<RequestedDocument> RequestedDocuments => Set<RequestedDocument>();
     public DbSet<DepartmentStaff> DepartmentStaff => Set<DepartmentStaff>();
